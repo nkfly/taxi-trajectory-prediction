@@ -3,7 +3,7 @@
 - http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6544830
 - http://msr-waypoint.com/en-us/um/people/jckrumm/Publications%202006/efficient%20routes%20camera%20ready.pdf
 - https://www.ri.cmu.edu/pub_files/2006/0/driver_intent.pdf
-- http://www.icmu.org/icmu2012/papers/FP-5.pdf
+- http://www.icmu.org/icmu2012/papers/FP-5.pdf   by @nkfly
 - http://www.ruizhang.info/publications/Vldbj2014-DestinationPrediction.pdf
 
 # In this challenge, we are going to build a predictive framework that is able to infer the final destination of taxi rides in Porto, Portugal based on their (initial) partial trajectories. The output of such a framework must be the final trip's destination.
