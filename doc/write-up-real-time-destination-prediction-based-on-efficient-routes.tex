@@ -1,0 +1,34 @@
+\documentclass{article}
+\usepackage{mathtools}
+\usepackage{fontspec}
+\setmainfont{TW-MOE-Std-Kai}
+\setromanfont{TW-MOE-Std-Kai}
+%% \newfontfamily{\K}{TW-MOE-Std-Kai}
+\setmonofont[Scale=0.8]{Arial}
+\XeTeXlinebreaklocale "zh"
+\XeTeXlinebreakskip = 0pt plus 1pt
+
+\begin{document}
+\textbf{統計資料}\\
+一開始paper先簡介一些統計資料，第2頁下圖表是參與survey的統計，有性別、年齡等等。在第3頁上方分別是每次trip花費時間和一日有幾個trip的histogram。統計方式方式是每個taxi安裝GPS，定時間記錄taxi的坐標。\\
+\\
+\textbf{建模}\\
+做法把地圖切成方格狀（第4頁上圖），每個方格標定數字。他將每個trip從頭到尾經過的方格記成數列。以第4頁下圖左為例，駕駛經過的方格序列可以記成S = {2, 7, 12, 11, 16, ..., 8}。\\
+同時，每個格子會有一個「理論到目的地最少時間」，paper記做t ，這數值先用Microsoft MapPoint計算出來，接着，對於任何一個方格序列S，他統計序列中每進入一個新的格子之後t變化多少。\\
+以S = {2, 7, 12, 11, 16, ..., 8}為例，有2的t和7的t的差值、7的t和12的t的差值等，差值可以是正數可以是負數，記作$\Delta t$。\\
+把這些$\Delta t$搜集起來得到第4頁的histogram。理論上如果駕駛規劃路徑能力不錯，$\Delta t$應盡可能持續負值。\\
+為了衡量駕駛可以做到「較佳的路徑規劃」的能力，他定義p值為$\frac {\Delta t為負數的sample數} {所有\Delta t的sample數}$。\\
+\\
+\textbf{目的地預測}\\
+給定一個方格路徑序列S，代表目前已經行走的路徑，計算目的地為$c_{i}$的機率，寫為$p(c_{i}|S)$。\\
+然後套用aBaye's rule\\
+$$p(c_{i}|S) = \frac {p(S|c_{i})p(c_{i})} {\sum_{j=1}^{N_{c}}p(S|c_{j})p(c_{j})}$$
+$N_{c}$是全部的格子數目\\
+paper中假設$p(c_{i})=\frac{1}{N_{c}}$，以及（抄原文避免失原意）\\
+$$p(S|c_{i})=\prod_{j=2}^{N_{s}}
+\begin{cases}
+  p & \text{if }s_{j}\text{ is closer to }c_{j}\text{ than any previous cell in S}\\
+  (1-p) & \text{otherwise}\\
+\end{cases}$$
+p值利用上面的$\Delta t$建模方法計算。
+\end{document}
