@@ -5,6 +5,13 @@
   - 方向: 給定目前已經走過的路徑S，最後到達目的地為ci的機率為p(ci|S)。若目的地在S延伸出去的方向上，則有較高的機率p到達目的地ci
   - 路程長度: 透過training data算出(到達目的地ci)的總路徑長度的機率分佈，到達ci的路程長度的機率分佈越高代表目的地越有可能是ci
   - 目的地: 透過training data找出可能的目的地集合C以及計程車到達某目的地ci的機率。例:平均每台計程車到達台北車站(ci)的機率是60%
+
+###Model Alex
+#####假設: 計程車司機從A點到鄰近B的transition probability不變
+#####方法簡介: 透過「transition probablity」和「路程長度」找「目的地」集合C中最有可能的目的地ci
+  - 方向: 給定目前已經走過的路徑S，設定長度threshold，最後機率最高的目的地為ci。
+  - 路程長度: 將長度分為好幾個區間（e.g.1km, 1.5km, 2km,...)
+  - 目的地: 比較每個長度的目的地在data裡面當作終點的機率，最高者輸出。
   
 # taxi-trajectory-prediction
 - http://www.vldb.org/pvldb/vol6/p1198-xue.pdf    by Alex
