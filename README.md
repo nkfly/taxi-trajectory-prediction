@@ -1,3 +1,6 @@
+### Kaggle link: https://www.kaggle.com/c/pkdd-15-predict-taxi-service-trajectory-i
+
+
 # 5/16 progress update
 ###Model Allen
 #####假設: 計程車司機會走「到目的地的最短路徑」
