@@ -2,6 +2,12 @@
 
 
 # 5/16 progress update
+###Model Li-Yuan
+#####假設: 這麼多的training data route的destination已經包含了城市中大部份可能的destination，所以可以把那些destination map成一個label，就使得這個問題變為classification problem。
+#####方法簡介: 依據test data的維度，去使用當初依據相對等維度所建的model，來做prediction。在feature selection上，就是使用last k points，然後把向量的因素考慮進去，也就是會把兩點的delta當作feature，而非點的絕對經緯度。
+  - Quick Test:先用簡單的model，在training data set上做這個concept的驗證，用cross-validation的方式去看看map成classification的problem的話accuracy如何。
+  - 未來展望:若是有效，則繼續從其提供的資料找出有用的feature，做進一步的feature selection，然後可以改採complexity更強大的model如dnn。
+  
 ###Model Allen
 #####假設: 計程車司機會走「到目的地的最短路徑」
 #####方法簡介: 透過「方向」和「路程長度」找「目的地」集合C中最有可能的目的地ci
