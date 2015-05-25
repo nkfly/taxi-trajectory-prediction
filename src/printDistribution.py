@@ -7,7 +7,7 @@ digits = 3
 digitsForDetail = 4
 groupAmount = 100
 groupingUpbound=0.02
-normalizationParameter = 1.2
+normalizationParameter = 10 #tune this one for bigger dataset
 
 
 def init():
