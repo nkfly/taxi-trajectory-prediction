@@ -17,6 +17,7 @@
   - day type: 分成平日、假日、假日前一天
   - 目的地: 透過training data找出可能的目的地集合C以及計程車到達某目的地ci的機率。例:平均每台計程車到達台北車站(ci)的機率是60%
   - 進度備忘: 緯度要看到多細(小數點後第幾位)。要用多少%的training data來train。我的電腦跑不動，想借工作站。兩個方法「方向」、「路程長度」的結果要如何結合(目前只是乘在一起)、檔案前幾行有其他問題
+  - 助教建議: taxi_id: 顯示習慣路徑。additional feature: speed
 
 ###Model Alex
 #####假設: 計程車司機從A點到鄰近B的transition probability不變
