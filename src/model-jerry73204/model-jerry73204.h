@@ -1,5 +1,5 @@
 #define MAX_META_NAME_SIZE 32
-#define MAX_POLYLINE_SIZE 32
+#define MAX_TRIP_ID_SIZE 32
 
 #define CALL_TYPE_A 0
 #define CALL_TYPE_B 1
@@ -21,7 +21,7 @@ struct meta
 
 struct trip
 {
-    unsigned long long int trip_id;
+    char trip_id[MAX_TRIP_ID_SIZE];
     int call_type;
     int origin_call;
     int origin_stand;
