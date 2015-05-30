@@ -32,3 +32,10 @@ struct trip
     int polyline_size;
     struct coordinate *polyline;
 };
+
+struct prediction
+{
+    struct trip *test_trip;
+    struct trip *nearest_train_trip;
+    double distance;
+};
