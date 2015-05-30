@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <math.h>
 #include <omp.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -14,6 +15,24 @@
 #define MAX_NUM_METAS 63
 #define MAX_NUM_TRIPS 8388608
 #define MAX_NUM_POSITIONS 134217728
+
+#define SWAP(a, b)                                            \
+    do                                                        \
+    {                                                         \
+        *((a)) ^= *((b));                                     \
+        *((b)) ^= *((a));                                     \
+        *((a)) ^= *((b));                                     \
+    }                                                         \
+    while (0);
+
+#define SWAP_POINTER(a, b)                                        \
+    do                                                    \
+    {                                                     \
+        typeof (*((a))) tmp = *((b));                     \
+        *((b)) = *((a));                                  \
+        *((a)) = tmp;                                     \
+    }                                                     \
+    while (0);
 
 struct meta metas[MAX_NUM_METAS];
 int num_metas;
@@ -28,6 +47,49 @@ struct trip *test_trip_pointers[MAX_NUM_TRIPS];
 
 struct coordinate *train_positions;
 struct coordinate *test_positions;
+
+double distance_coordinate(struct coordinate *line_left, struct coordinate *line_right)
+{
+    double longitude_diff = line_left->longitude - line_right->longitude;
+    double latitude_diff = line_left->latitude - line_right->latitude;
+    return sqrt(longitude_diff * longitude_diff + latitude_diff * latitude_diff);
+}
+
+double compare_polyline(struct coordinate *line_left, struct coordinate *line_right, int n)
+{
+    double norm = 0.0;
+
+    for (int i = 0; i < n; i++)
+    {
+        norm += distance_coordinate(line_left, line_right);
+        line_left++;
+        line_right++;
+    }
+    return norm;
+}
+
+double distance_trip(struct trip *trip_left, struct trip *trip_right)
+{
+    int size_left = trip_left->polyline_size;
+    int size_right = trip_right->polyline_size;
+
+    if (size_left > size_right)
+    {
+        SWAP(&size_left, &size_right);
+        SWAP_POINTER(&trip_left, &trip_right);
+    }
+
+    double min_distance = 1.0 / 0.0; /* infinity */
+    struct coordinate *polyline_ptr = trip_left->polyline;
+    for (int i = 0; i < size_right - size_left; i++)
+    {
+        double distance = compare_polyline(polyline_ptr, trip_right->polyline, size_left);
+        min_distance = (distance < min_distance ? distance : min_distance );
+        polyline_ptr++;
+    }
+
+    return min_distance;
+}
 
 void load_meta_data(char *path)
 {
@@ -258,12 +320,12 @@ void load_train_data(char *path)
 
     assert(!munmap(mem_begin, stat_buf.st_size));
 
-    int trip_begin_index[num_chunks];
+    int trip_begin_index[num_chunks + 1];
     trip_begin_index[0] = 0;
-    for (int i = 1; i < num_chunks; i++)
-    {
+    for (int i = 1; i <= num_chunks; i++)
         trip_begin_index[i] = trip_begin_index[i - 1] + trip_count[i - 1];
-    }
+
+    num_train_trips = trip_begin_index[num_chunks];
 
 #pragma omp parallel for
     for (int i = 0; i < num_chunks; i++)
@@ -457,12 +519,14 @@ void load_test_data(char *path)
 
     assert(!munmap(mem_begin, stat_buf.st_size));
 
-    int trip_begin_index[num_chunks];
+    int trip_begin_index[num_chunks + 1];
     trip_begin_index[0] = 0;
-    for (int i = 1; i < num_chunks; i++)
+    for (int i = 1; i <= num_chunks; i++)
     {
         trip_begin_index[i] = trip_begin_index[i - 1] + trip_count[i - 1];
     }
+
+    num_test_trips = trip_begin_index[num_chunks];
 
 #pragma omp parallel for
     for (int i = 0; i < num_chunks; i++)
@@ -487,6 +551,7 @@ int main(int argc, char **argv)
 {
     assert(argc == 4);
 
+    /* init memory space */
     train_trips = (struct trip*) malloc(MAX_NUM_TRIPS * sizeof(struct trip));
     assert(train_trips != NULL);
 
@@ -499,9 +564,28 @@ int main(int argc, char **argv)
     test_positions = (struct coordinate*) malloc(MAX_NUM_POSITIONS * sizeof(struct coordinate));
     assert(test_positions != NULL);
 
+    /* parse dataset */
     load_meta_data(argv[1]);
     load_train_data(argv[2]);
     load_test_data(argv[3]);
 
+    /* find distances b/w trips */
+    struct trip **train_trip_pointers_end = &train_trip_pointers[num_train_trips];
+    struct trip **test_trip_pointers_end = &test_trip_pointers[num_test_trips];
+
+#pragma omp parallel for collapse(2)
+    for (struct trip **test_pointers_ptr = &test_trip_pointers[0];
+         test_pointers_ptr < test_trip_pointers_end;
+         test_pointers_ptr++)
+    {
+        for (struct trip **train_pointers_ptr = &train_trip_pointers[0];
+             train_pointers_ptr < train_trip_pointers_end;
+             train_pointers_ptr++)
+        {
+            struct trip *test_ptr = *test_pointers_ptr;
+            struct trip *train_ptr = *train_pointers_ptr;
+            double distance = distance_trip(test_ptr, train_ptr);
+        }
+    }
     return 0;
 }
