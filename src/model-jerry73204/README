@@ -1,0 +1,12 @@
+build
+=====
+use OpenMP
+$ make
+
+use CUDA ( not done yet
+$ make use_cuda
+
+execution
+=========
+e.g
+$ ./model-jerry73204 ../../dataset/metaData_taxistandsID_name_GPSlocation.csv ../../dataset/train.csv ../../dataset/test.csv
