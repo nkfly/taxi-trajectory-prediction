@@ -58,6 +58,7 @@ struct coordinate *test_positions;
 
 struct prediction predictions[MAX_NUM_PREDICTIONS];
 
+/* find distance b/w two coordinate */
 double distance_coordinate(struct coordinate *line_left, struct coordinate *line_right)
 {
     double longitude_diff = line_left->longitude - line_right->longitude;
@@ -65,6 +66,7 @@ double distance_coordinate(struct coordinate *line_left, struct coordinate *line
     return sqrt(longitude_diff * longitude_diff + latitude_diff * latitude_diff);
 }
 
+/* find the norm b/w two polylines */
 double compare_polyline(struct coordinate *line_left, struct coordinate *line_right, int n)
 {
     double norm = 0.0;
@@ -78,6 +80,7 @@ double compare_polyline(struct coordinate *line_left, struct coordinate *line_ri
     return norm;
 }
 
+/* find minimum norm b/w two trips */
 double distance_trip(struct trip *trip_left, struct trip *trip_right)
 {
     int size_left = trip_left->polyline_size;
@@ -366,6 +369,8 @@ void compute_prediction_cuda()
 
     cudaGetDevice(&device_id);
     cudaGetDeviceCount(&device_count);
+
+    /* TODO */
 }
 #else
 void compute_prediction_openmp()
@@ -374,6 +379,7 @@ void compute_prediction_openmp()
     struct trip **train_trip_pointers_end = &train_trip_pointers[num_train_trips];
     struct trip **test_trip_pointers_end = &test_trip_pointers[num_test_trips];
 
+    /* find nearest training trip for each testing trip */
     for (struct trip **test_pointers_ptr = &test_trip_pointers[0];
          test_pointers_ptr < test_trip_pointers_end;
          test_pointers_ptr++)
