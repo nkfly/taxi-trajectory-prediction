@@ -36,6 +36,5 @@ struct trip
 struct prediction
 {
     struct trip *test_trip;
-    struct trip *nearest_train_trip;
-    double distance;
+    struct coordinate destination;
 };

@@ -10,6 +10,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+
+#ifdef USE_CUDA
+#include <cuda.h>
+#include <cuda_runtime_api.h>
+#endif
+
 #include "model-jerry73204.h"
 
 #define MAX_NUM_METAS 63
@@ -352,7 +358,17 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
     }
 }
 
-void compute_prediction()
+#ifdef USE_CUDA
+void compute_prediction_cuda()
+{
+    int device_id;
+    int device_count;
+
+    cudaGetDevice(&device_id);
+    cudaGetDeviceCount(&device_count);
+}
+#else
+void compute_prediction_openmp()
 {
     /* find distances b/w trips */
     struct trip **train_trip_pointers_end = &train_trip_pointers[num_train_trips];
@@ -383,9 +399,16 @@ void compute_prediction()
 
         int index = test_pointers_ptr - &test_trip_pointers[0];
         predictions[index].test_trip = test_ptr;
-        predictions[index].nearest_train_trip = nearest_trip;
-        predictions[index].distance = min_distance;
+        predictions[index].destination = nearest_trip->polyline[nearest_trip->polyline_size - 1];
     }
+}
+#endif
+
+void print_prediction()
+{
+    printf("\"TRIP_ID\",\"LATITUDE\",\"LONGITUDE\"\n");
+    for (struct prediction *ptr = &predictions[0]; ptr != &predictions[num_test_trips]; ptr++)
+        printf("\"%s\",%lf,%lf\n", ptr->test_trip->trip_id, ptr->destination.longitude, ptr->destination.latitude);
 }
 
 int main(int argc, char **argv)
@@ -411,10 +434,14 @@ int main(int argc, char **argv)
     load_csv_data(argv[3], test_trips, test_trip_pointers, test_positions, &num_test_trips);
 
     /* make prediction */
-    compute_prediction();
+#ifdef USE_CUDA
+    compute_prediction_cuda();
+#else
+    compute_prediction_openmp();
+#endif
 
     /* print results */
-    /* TODO */
+    print_prediction();
 
     return 0;
 }
