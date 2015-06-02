@@ -110,19 +110,24 @@ double distance_trip(struct trip *trip_left, struct trip *trip_right)
 
 void load_meta_data(char *path)
 {
+    int ret;
+
     /* open file */
-    assert(!access(path, F_OK) && !access(path, R_OK));
+    ret = access(path, F_OK) && !access(path, R_OK);
+    assert(ret == 0);
 
     int fd_meta = open(path, O_RDONLY);
     assert(fd_meta >= 0);
 
     struct stat stat_buf;
-    assert(!fstat(fd_meta, &stat_buf));
+    ret = fstat(fd_meta, &stat_buf);
+    assert(ret == 0);
 
     char *mem_begin = (char*) mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED | MAP_POPULATE, fd_meta, 0);
     assert(mem_begin != NULL);
     char *mem_end = mem_begin + stat_buf.st_size;
-    assert(!close(fd_meta));
+    ret = close(fd_meta);
+    assert(ret == 0);
 
     char *mem_ptr = strchr(mem_begin, '\n');
     assert(mem_ptr != NULL);
@@ -161,24 +166,30 @@ void load_meta_data(char *path)
     }
 
     num_metas = meta_ptr - &metas[0];
-    assert(!munmap(mem_begin, stat_buf.st_size));
+    ret = munmap(mem_begin, stat_buf.st_size);
+    assert(ret == 0);
 }
 
 void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, struct coordinate *positions, int *num_trips)
 {
+    int ret;
+
     /* open file */
-    assert(!access(path, F_OK) && !access(path, R_OK));
+    ret = access(path, F_OK) || !access(path, R_OK);
+    assert(ret == 0);
 
     int fd_csv = open(path, O_RDONLY);
     assert(fd_csv >= 0);
 
     struct stat stat_buf;
-    assert(!fstat(fd_csv, &stat_buf));
+    ret = fstat(fd_csv, &stat_buf);
+    assert(ret == 0);
 
     char *mem_begin = (char*) mmap(NULL, stat_buf.st_size, PROT_READ, MAP_SHARED | MAP_POPULATE, fd_csv, 0);
     assert(mem_begin != NULL);
     char *mem_end = mem_begin + stat_buf.st_size;
-    assert(!close(fd_csv));
+    ret = close(fd_csv);
+    assert(ret == 0);
 
     /* skip first line */
     char *mem_ptr = strchr(mem_begin, '\n');
@@ -336,7 +347,8 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
         assert(position_ptr - position_begin <= num_positions_per_worker);
     }
 
-    assert(!munmap(mem_begin, stat_buf.st_size));
+    ret = munmap(mem_begin, stat_buf.st_size);
+    assert(ret == 0);
 
     /* populate table of pointers to the trips */
     int trip_begin_index[num_chunks + 1];
