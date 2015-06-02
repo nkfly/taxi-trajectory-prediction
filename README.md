@@ -3,11 +3,12 @@
 
 # 6/2 progress update
 ###Model Li-Yuan update
-Complete the signal based method, and submit to kaggle, obtaining rank 39/175.
-Rank
-39   new	Li-Yuan Hung 2.98651 3	Tue, 02 Jun 2015 03:39:00
+- Complete the signal based method, and submit to kaggle, obtaining rank 39/175.
+- Rank
+- 39   new	Li-Yuan Hung 2.98651 3	Tue, 02 Jun 2015 03:39:00
 
-The next thing to do is a language model. We can map this problem to a sentence generation problem using n-gram language model with smoothing. 
+- The next thing to do is a language model. 
+- We can map this problem to a sentence generation problem using n-gram language model with smoothing. 
 
 
 # 5/16 progress update
