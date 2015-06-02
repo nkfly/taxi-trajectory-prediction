@@ -419,7 +419,7 @@ void print_prediction()
 {
     printf("\"TRIP_ID\",\"LATITUDE\",\"LONGITUDE\"\n");
     for (struct prediction *ptr = &predictions[0]; ptr != &predictions[num_test_trips]; ptr++)
-        printf("\"%s\",%lf,%lf\n", ptr->test_trip->trip_id, ptr->destination.latitude, ptr->destination.longitude);
+        printf("\"%s\",%lf,%lf\n", ptr->test_trip->trip_id, ptr->destination.longitude, ptr->destination.latitude);
 }
 
 int main(int argc, char **argv)
