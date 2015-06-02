@@ -1,6 +1,15 @@
 ### Kaggle link: https://www.kaggle.com/c/pkdd-15-predict-taxi-service-trajectory-i
 
 
+# 6/2 progress update
+###Model Li-Yuan update
+Complete the signal based method, and submit to kaggle, obtaining rank 39/175.
+Rank
+39   new	Li-Yuan Hung 2.98651 3	Tue, 02 Jun 2015 03:39:00
+
+The next thing to do is a language model. We can map this problem to a sentence generation problem using n-gram language model with smoothing. 
+
+
 # 5/16 progress update
 ###Model Li-Yuan
 #####假設: 這麼多的training data route的destination已經包含了城市中大部份可能的destination，所以可以把那些destination map成一個label，就使得這個問題變為classification problem。
