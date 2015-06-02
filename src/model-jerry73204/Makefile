@@ -1,6 +1,6 @@
 SOURCES=model-jerry73204.c
 TARGET=model-jerry73204
-CFLAGS=-g -O2 -Wall -std=gnu11 -fopenmp
+CFLAGS=-g -O3 -Wall -std=gnu11 -fopenmp -DNDEBUG
 LDFLAGS=
 INCLUDES=
 LIBS=-lm

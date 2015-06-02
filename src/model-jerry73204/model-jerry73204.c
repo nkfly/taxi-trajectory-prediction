@@ -69,6 +69,7 @@ double distance_coordinate(struct coordinate *line_left, struct coordinate *line
 /* find the norm b/w two polylines */
 double compare_polyline(struct coordinate *line_left, struct coordinate *line_right, int n)
 {
+    assert(n > 0);
     double norm = 0.0;
 
     for (int i = 0; i < n; i++)
@@ -91,6 +92,9 @@ double distance_trip(struct trip *trip_left, struct trip *trip_right)
         SWAP(&size_left, &size_right);
         SWAP_POINTER(&trip_left, &trip_right);
     }
+
+    if (size_left == 0)
+        return 1.0 / 0.0;
 
     double min_distance = 1.0 / 0.0; /* infinity */
     struct coordinate *polyline_ptr = trip_left->polyline;
@@ -359,6 +363,7 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
             trip_ptr++;
         }
     }
+
 }
 
 #ifdef USE_CUDA
