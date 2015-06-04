@@ -80,15 +80,17 @@ def makeTrans(polylines, classDict, size):
         end = coordinateTransf(trip[len(trip)-1], 2)
         key2 = str(end[0])+','+str(end[1])
         trans[classDict[key1]][classDict[key2]]+=1
-    trans = stochasticTrans(trans)
-    aperiodicTrans(trans,size)
+    # trans = stochasticTrans(trans)
+    # aperiodicTrans(trans,size)
     return trans
 
 def outputMatrix(filename, matrix, size):
 	fp = open(filename, 'w')
 	for i in xrange(size):
+			print i,
 		for j in xrange(size):
-			print >>fp,matrix[i][j],
+			if j>0:
+				print >>fp, str(j)+':'+str(matrix[i][j]),
 		print >>fp,''
 
 def main():
