@@ -21,8 +21,9 @@
 #define MAX_NUM_METAS 63
 #define MAX_NUM_TRIPS 8388608
 #define MAX_NUM_POSITIONS 134217728
-#define POST_TEST_POLYLINE_LENTH 16
+#define COMPARED_POLYLINE_LENTH 16
 #define MAX_NUM_PREDICTIONS 320
+#define DOUBLE_INFINITY ((1.0 / 0.0))
 
 #define SWAP(a, b)                                            \
     do                                                        \
@@ -41,6 +42,9 @@
         *((a)) = tmp;                                     \
     }                                                     \
     while (0);
+
+
+int max_num_workers;
 
 struct meta metas[MAX_NUM_METAS];
 int num_metas;
@@ -67,7 +71,7 @@ double distance_coordinate(struct coordinate *line_left, struct coordinate *line
 }
 
 /* find the norm b/w two polylines */
-double compare_polyline(struct coordinate *line_left, struct coordinate *line_right, int n)
+double distance_polyline(struct coordinate *line_left, struct coordinate *line_right, int n)
 {
     assert(n > 0);
     double norm = 0.0;
@@ -81,32 +85,50 @@ double compare_polyline(struct coordinate *line_left, struct coordinate *line_ri
     return norm;
 }
 
+#if COMPARED_POLYLINE_LENTH == 0
 /* find minimum norm b/w two trips */
-double distance_trip(struct trip *trip_left, struct trip *trip_right)
+double distance_trip(struct trip *trip_test, struct trip *trip_train)
 {
-    int size_left = trip_left->polyline_size;
-    int size_right = trip_right->polyline_size;
+    int size_test = trip_test->polyline_size;
+    int size_train = trip_train->polyline_size;
 
-    if (size_left > size_right)
+    if (size_train == 0 || size_test > size_train || size_test == 0)
+        return DOUBLE_INFINITY;
+
+    double min_distance = DOUBLE_INFINITY; /* infinity */
+    struct coordinate *train_polyline_ptr = trip_train->polyline;
+    struct coordinate *test_polyline_ptr = trip_test->polyline;
+
+    for (int i = 0; i <= size_train - size_test; i++)
     {
-        SWAP(&size_left, &size_right);
-        SWAP_POINTER(&trip_left, &trip_right);
+        double distance = distance_polyline(train_polyline_ptr, test_polyline_ptr, size_test);
+        min_distance = ( distance < min_distance ? distance : min_distance );
+        train_polyline_ptr++;
     }
 
-    if (size_left == 0)
-        return 1.0 / 0.0;
-
-    double min_distance = 1.0 / 0.0; /* infinity */
-    struct coordinate *polyline_ptr = trip_left->polyline;
-    for (int i = 0; i < size_right - size_left; i++)
-    {
-        double distance = compare_polyline(polyline_ptr, trip_right->polyline, size_left);
-        min_distance = (distance < min_distance ? distance : min_distance );
-        polyline_ptr++;
-    }
-
-    return min_distance;
+    return min_distance / size_test;
 }
+#else
+double distance_polyline_to_trip(int size_test, struct coordinate *polyline_test, struct trip *trip_train)
+{
+    int size_train = trip_train->polyline_size;
+
+    if (size_train == 0 || size_test > size_train || size_test == 0)
+        return DOUBLE_INFINITY;
+
+    double min_distance = DOUBLE_INFINITY; /* infinity */
+    struct coordinate *train_polyline_ptr = trip_train->polyline;
+
+    for (int i = 0; i <= size_train - size_test; i++)
+    {
+        double distance = distance_polyline(train_polyline_ptr, polyline_test, size_test);
+        min_distance = ( distance < min_distance ? distance : min_distance );
+        train_polyline_ptr++;
+    }
+
+    return min_distance / size_test;
+}
+#endif
 
 void load_meta_data(char *path)
 {
@@ -197,7 +219,6 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
     mem_ptr++;
 
     int num_chunks;
-    int max_num_workers = omp_get_max_threads();
     int min_chunk_size = (mem_end - mem_ptr - 1) / max_num_workers + 1;
     int num_trips_per_worker = MAX_NUM_TRIPS / max_num_workers;
     int num_positions_per_worker = MAX_NUM_POSITIONS / max_num_workers;
@@ -206,7 +227,6 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
     begin_ptrs[0] = mem_ptr;
 
     /* compute chunk ranges for each worker */
-    assert(max_num_workers > 1);
     for (int i = 1; i <= max_num_workers; i++)
     {
         char *curr_ptr = begin_ptrs[i - 1] + min_chunk_size;
@@ -237,7 +257,7 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
     {
         struct trip *trip_begin = &trips[i * num_trips_per_worker];
         struct trip *trip_ptr = trip_begin;
-        struct coordinate *position_begin = &positions[i * num_positions_per_worker];
+        /* struct coordinate *position_begin = &positions[i * num_positions_per_worker]; */
         struct coordinate *position_ptr = &positions[i * num_positions_per_worker];
         char *ptr = begin_ptrs[i];
         char *end = begin_ptrs[i + 1];
@@ -378,20 +398,11 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
 
 }
 
+void compute_prediction()
+{
 #ifdef USE_CUDA
-void compute_prediction_cuda()
-{
-    int device_id;
-    int device_count;
-
-    cudaGetDevice(&device_id);
-    cudaGetDeviceCount(&device_count);
-
     /* TODO */
-}
 #else
-void compute_prediction_openmp()
-{
     /* find distances b/w trips */
     struct trip **train_trip_pointers_end = &train_trip_pointers[num_train_trips];
     struct trip **test_trip_pointers_end = &test_trip_pointers[num_test_trips];
@@ -401,28 +412,59 @@ void compute_prediction_openmp()
          test_pointers_ptr < test_trip_pointers_end;
          test_pointers_ptr++)
     {
-        double min_distance = 1.0 / 0.0; /* infinity */
-        struct trip *nearest_trip = NULL;
+        double min_distances[max_num_workers];
+        struct trip *nearest_trips[max_num_workers];
         struct trip *test_ptr = *test_pointers_ptr;
 
+        memset(nearest_trips, 0, sizeof(nearest_trips));
+        for (int i = 0; i < max_num_workers; i++)
+            min_distances[i] = DOUBLE_INFINITY;
 
+#if COMPARED_POLYLINE_LENTH != 0
+        int size_polyline = (COMPARED_POLYLINE_LENTH <= test_ptr->polyline_size) ? \
+            COMPARED_POLYLINE_LENTH : test_ptr->polyline_size ;
+        struct coordinate *polyline = &test_ptr->polyline[test_ptr->polyline_size - size_polyline];
+#endif
+
+        /* find min distance per worker */
 #pragma omp parallel for schedule(dynamic)
         for (struct trip **train_pointers_ptr = &train_trip_pointers[0];
              train_pointers_ptr < train_trip_pointers_end;
              train_pointers_ptr++)
         {
+            int thread_index = omp_get_thread_num();
             struct trip *train_ptr = *train_pointers_ptr;
-            double distance = distance_trip(test_ptr, train_ptr);
-            if (distance < min_distance)
+
+            double distance;
+#if COMPARED_POLYLINE_LENTH == 0
+            distance = distance_trip(test_ptr, train_ptr);
+#else
+            distance = distance_polyline_to_trip(size_polyline, polyline, train_ptr);
+#endif
+
+            if (distance < min_distances[thread_index])
             {
-                min_distance = distance;
-                nearest_trip = train_ptr;
+                min_distances[thread_index] = distance;
+                nearest_trips[thread_index] = train_ptr;
             }
         }
 
-        int index = test_pointers_ptr - &test_trip_pointers[0];
-        predictions[index].test_trip = test_ptr;
-        predictions[index].destination = nearest_trip->polyline[nearest_trip->polyline_size - 1];
+        /* min distance reduction */
+        double min_distance = DOUBLE_INFINITY;
+        struct trip *nearest_trip = NULL;
+        for (int i = 0; i < max_num_workers; i++)
+        {
+            if (min_distance > min_distances[i])
+            {
+                min_distance = min_distances[i];
+                nearest_trip = nearest_trips[i];
+            }
+        }
+
+        assert(nearest_trip != NULL);
+        int test_trip_index = test_pointers_ptr - &test_trip_pointers[0];
+        predictions[test_trip_index].test_trip = test_ptr;
+        predictions[test_trip_index].destination = nearest_trip->polyline[nearest_trip->polyline_size - 1];
     }
 }
 #endif
@@ -437,6 +479,8 @@ void print_prediction()
 int main(int argc, char **argv)
 {
     assert(argc == 4);
+    max_num_workers = omp_get_max_threads();
+    assert(max_num_workers > 1);
 
     /* init memory space */
     train_trips = (struct trip*) malloc(MAX_NUM_TRIPS * sizeof(struct trip));
@@ -457,11 +501,7 @@ int main(int argc, char **argv)
     load_csv_data(argv[3], test_trips, test_trip_pointers, test_positions, &num_test_trips);
 
     /* make prediction */
-#ifdef USE_CUDA
-    compute_prediction_cuda();
-#else
-    compute_prediction_openmp();
-#endif
+    compute_prediction();
 
     /* print results */
     print_prediction();
