@@ -84,6 +84,13 @@ def makeTrans(polylines, classDict, size):
     aperiodicTrans(trans,size)
     return trans
 
+def outputMatrix(filename, matrix, size):
+	fp = open(filename, 'w')
+	for i in xrange(size):
+		for j in xrange(size):
+			print >>fp,matrix[i][j],
+		print >>fp,''
+
 def main():
 	filename = sys.argv[1]
 	metadata, polylines = readData(filename, 3)
@@ -92,4 +99,7 @@ def main():
 	print 'keyList',len(keyList),'classDict',len(classDict),'destinationDict',len(destinationDict)
 	size = len(classDict)
 	trans = makeTrans(polylines, classDict, size)
+	output = sys.argv[2]
+	outputMatrix(output, trans, size)
+
 
