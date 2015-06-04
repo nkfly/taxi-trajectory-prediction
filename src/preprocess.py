@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-sys.path.append("./src")
+#sys.path.append("./src")
 import time
 import csv
 import copy
@@ -102,4 +102,5 @@ def main():
 	output = sys.argv[2]
 	outputMatrix(output, trans, size)
 
-
+if __name__ == '__main__':
+    main()
