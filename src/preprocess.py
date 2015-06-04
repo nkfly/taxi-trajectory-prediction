@@ -69,7 +69,7 @@ def aperiodicTrans(trans,size):
     return trans
 
 def makeTrans(polylines, classDict, size):
-    trans = np.zeros((size, size))
+    trans = np.zeros((size, size), dtype=int)
     l = len(polylines)
     for i in xrange(l):
         if(len(polylines[i])==0):
@@ -87,9 +87,9 @@ def makeTrans(polylines, classDict, size):
 def outputMatrix(filename, matrix, size):
 	fp = open(filename, 'w')
 	for i in xrange(size):
-			print i,
+		print >>fp, i,
 		for j in xrange(size):
-			if j>0:
+			if matrix[i][j]>0:
 				print >>fp, str(j)+':'+str(matrix[i][j]),
 		print >>fp,''
 
