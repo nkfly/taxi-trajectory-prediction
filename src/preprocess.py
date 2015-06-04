@@ -94,14 +94,20 @@ def outputMatrix(filename, matrix, size):
 		print >>fp,''
 
 def main():
-	filename = sys.argv[1]
-	metadata, polylines = readData(filename, 3)
+	for i in xrange(len(sys.argv)):
+		if sys.argv[i]=='-i':
+			filename = sys.argv[i+1]
+		elif sys.argv[i]=='-o':
+			output = sys.argv[i+1]
+		elif sys.argv[i]=='-d':
+			digits = int(sys.argv[i+1])
+
+	metadata, polylines = readData(filename, digits)
 	print 'metadata',len(metadata),'polylines',len(polylines)
 	classDict, keyList, destinationDict = posToClass(polylines)
 	print 'keyList',len(keyList),'classDict',len(classDict),'destinationDict',len(destinationDict)
 	size = len(classDict)
 	trans = makeTrans(polylines, classDict, size)
-	output = sys.argv[2]
 	outputMatrix(output, trans, size)
 
 if __name__ == '__main__':
