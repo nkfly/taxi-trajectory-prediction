@@ -1,6 +1,16 @@
 ### Kaggle link: https://www.kaggle.com/c/pkdd-15-predict-taxi-service-trajectory-i
 
 
+# 6/2 progress update
+###Model Li-Yuan update
+- Complete the signal based method, and submit to kaggle, obtaining rank 39/175.
+- Rank
+- 39   new	Li-Yuan Hung 2.98651 3	Tue, 02 Jun 2015 03:39:00
+
+- The next thing to do is a language model. 
+- We can map this problem to a sentence generation problem using n-gram language model with smoothing. 
+
+
 # 5/16 progress update
 ###Model Li-Yuan
 #####假設: 這麼多的training data route的destination已經包含了城市中大部份可能的destination，所以可以把那些destination map成一個label，就使得這個問題變為classification problem。
@@ -16,7 +26,12 @@
   - time stamp: 搭車時間
   - day type: 分成平日、假日、假日前一天
   - 目的地: 透過training data找出可能的目的地集合C以及計程車到達某目的地ci的機率。例:平均每台計程車到達台北車站(ci)的機率是60%
-  - 進度備忘: 緯度要看到多細(小數點後第幾位)。要用多少%的training data來train。我的電腦跑不動，想借工作站。兩個方法「方向」、「路程長度」的結果要如何結合(目前只是乘在一起)、檔案前幾行有其他問題
+  - 進度備忘:
+    - 緯度要看到多細(小數點後第幾位)
+    - 多個方法「方向」、「路程長度」、「Calltype」...的結果要如何結合(目前只是乘在一起)
+      - 目前讓original stand有比call type兩倍高的weight
+    - Timestamp similarity = 1/defference(目前)
+    - 再加入: priginal call
   - 助教建議: taxi_id: 顯示習慣路徑。additional feature: speed
   - 優化的可能作法: 5-gram lang model. 評估test line跟train line的相似度的方法可再優化
 
