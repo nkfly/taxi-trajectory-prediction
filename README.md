@@ -31,9 +31,8 @@
     - 多個方法「方向」、「路程長度」、「Calltype」...的結果要如何結合(目前只是乘在一起)
       - 目前讓original stand有比call type兩倍高的weight
     - Timestamp similarity = 1/defference(目前)
-    - 再加入: priginal call
-  - 助教建議: taxi_id: 顯示習慣路徑。additional feature: speed
-  - 優化的可能作法: 5-gram lang model. 評估test line跟train line的相似度的方法可再優化
+  - 助教建議: additional feature: speed
+  - 優化的可能作法: 評估test line跟train line的相似度的方法可再優化
 
 ###Model Alex
 #####假設: 計程車司機從A點到鄰近B的transition probability不變
