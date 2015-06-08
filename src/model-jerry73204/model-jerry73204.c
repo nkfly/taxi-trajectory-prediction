@@ -478,7 +478,12 @@ void print_prediction()
 
 int main(int argc, char **argv)
 {
-    assert(argc == 4);
+    if (argc != 4)
+    {
+        fprintf(stderr, "Usage: %s meta_data train_data test_data\n\n", argv[0]);
+        return 1;
+    }
+
     max_num_workers = omp_get_max_threads();
     assert(max_num_workers > 1);
 
