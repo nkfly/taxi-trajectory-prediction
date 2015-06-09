@@ -1,107 +1,106 @@
-####weight of polyline similarity, calltype,....
-########so far we normalize them as score/sum(socres)
-####weight between "call type=B" and "origin stand"
-########so far I assume weight(same call type=B)*2 = weight(same origin stand)
-####feature to add: origin call
-####How to combine sumOfpolylineSimilarityScore and sumOfCallTypeScore
-########so far I sum them up
-####Timestamp similarity
-########similarity = 1/defference
-import math
-import numpy
-polylines = []
-destinations = []
-testPolylineData = []
-LengthDistribution = []
-digits = 3
-titles = []
-metadata = []
-testMetadata = []
+import csv
+import numpy as np
+import json
+import sys
+import argparse
+from scipy.spatial.distance import cdist
 
-def init():
-	for trajectoryData in open('./trainSubset.csv','r'):#.readlines():
-		startingPoint = trajectoryData.find('[[')+1
-		startGettingMetadata = 1
-		if (startingPoint != 0) and (trajectoryData[startingPoint:-3].count('[') > 1): #ignore trajectoryData w/o moving
-			tempResult = []
-			for metaDataNum in xrange(8):
-				tempResult.append(trajectoryData[startGettingMetadata:trajectoryData.find('"',startGettingMetadata)])
-				startGettingMetadata = trajectoryData.find(',',startGettingMetadata)+2
-				if trajectoryData[startGettingMetadata-1]=='N':startGettingMetadata -= 1
-			metadata.append(tempResult)
-			tempResult = []
-			for nodeAmount in xrange(trajectoryData[startingPoint:-3].count('[')):
-				tempResult.append(coordinateTransf(trajectoryData[trajectoryData.find('[',startingPoint):trajectoryData.find(']',startingPoint)+1]))
-				startingPoint = trajectoryData.find(']',startingPoint)+1
-			polylines.append(tempResult)
-	for testFileLine in open('./test.csv','r'):#.readlines():
-		if testFileLine.find("[[") != -1: titles.append(testFileLine[1:testFileLine.index(",",1)-1])#store titles(e.g., T23) for file formatting
-		startGettingPolyline = testFileLine.find('[[')+1
-		startGettingMetadata = 1
-		if startGettingPolyline != 0:
-			tempResult = []
-			for metaDataNum in xrange(8):
-				tempResult.append(testFileLine[startGettingMetadata:testFileLine.find('"',startGettingMetadata)])
-				startGettingMetadata = testFileLine.find(',',startGettingMetadata)+2
-				if testFileLine[startGettingMetadata-1] == 'N': startGettingMetadata -= 1
-			testMetadata.append(tempResult)
-			tempResult = []
-			for nodeAmount in xrange(testFileLine[startGettingPolyline:-3].count('[')):
-				tempResult.append(coordinateTransf(testFileLine[testFileLine.find('[',startGettingPolyline):testFileLine.find(']',startGettingPolyline)+1]))
-				startGettingPolyline = testFileLine.find(']',startGettingPolyline)+1
-			testPolylineData.append(tempResult)
+def main(args):
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-t", type = str, default = './train.csv')
+	parser.add_argument("-i", type = str, default = './test.csv')
+	parser.add_argument("-o", type = str, default = './ans.csv')
+	parser.add_argument("-d",type = int, default = 3)
+	parser.add_argument("-e",type = float, default = 0.01)
+
+	args = parser.parse_args(args)
+	
+	global trainFile
+	trainFile = args.t
+	global testFile
+	testFile = args.i
+	global output
+	output = args.o
+	global digits
+	digits = args.d
+	global digits
+	errorThreshold = args.d
+
+	global polylines
+	polylines = []
+	global testPolylineData
+	testPolylineData = []
+	global metadata
+	metadata = []
+	global testMetadata
+	testMetadata = []
+	global destinations
+	destinations = []
+
+
+	trajectoryFile = csv.reader(open(trainFile,'r'))
+	for trajectoryData in trajectoryFile:
+		if len(trajectoryData[-1])>26:
+			metadata.append(trajectoryData[:-1])
+
+			polyline = json.loads(trajectoryData[-1])
+			polylineBackUp = polyline[:]
+			lastNode = polyline[0]
+			for node in polyline:
+				if abs(node[0]-lastNode[0])+abs(node[1]-lastNode[1])<0.01: lastNode = node
+				else:
+					print lastNode
+					polylineBackUp.remove(node)
+			
+			polylines.append(np.around(polylineBackUp,digits))
+	testTrajectoryFile = csv.reader(open(testFile,'r'))
+	next(testTrajectoryFile)
+	for testFileLine in testTrajectoryFile:
+		testMetadata.append(testFileLine[:-1])
+		testPolylineData.append(np.around(json.loads(testFileLine[-1]),digits))
 	setDestination()
-
-def coordinateTransf(string): #"[1.233974,2.445438]"=>[1.23,2.45]
-	temp = eval(string)
-	result = [round(temp[0],digits),round(temp[1],digits)]
-	return result
-
-def isSameDirection(trajectory1,trajectory2):
-	vector1 = [trajectory1[-1][0]-trajectory1[0][0],trajectory1[-1][-1]-trajectory1[0][-1]]
-	vector2 = [trajectory2[-1][0]-trajectory2[0][0],trajectory2[-1][-1]-trajectory2[0][-1]]
-	if vector1[0]*vector2[0]+vector1[1]*vector2[1]>0: return True
-	else: return False
+	buildAnswerFile()
 
 def setDestination(): #(coordinate of the destinations,prob to reach this destinations,which polylines reach this destinations)
 	for polylineNum in xrange(len(polylines)):
-		isNew = 1
-		for destinationInDetail in destinations:
-			if destinationInDetail[0] == polylines[polylineNum][-1]:
-				destinationInDetail[1].append(polylineNum)
-				isNew *= 0
-		if isNew == 1: destinations.append([polylines[polylineNum][-1],[polylineNum]])
+		isNew = True
+		for destinationNum in xrange(len(destinations)):
+			if (destinations[destinationNum][0] == polylines[polylineNum][-1]).all():
+				destinations[destinationNum][1].append(polylineNum)
+				isNew = False
+				break
+		if isNew == True: destinations.append([polylines[polylineNum][-1],[polylineNum]])
 
 def BayesMethod(testPolylineData,testMetadata):
-	scoreList = range(len(destinations))
+	scoreList = xrange(len(destinations))
 	polylineSimilarityScore = polylineSimilarityScoring(testPolylineData)
 	#callTypeScore = callTypeScoring(testMetadata)
 	#dayTypescore = dayTypeScoring(testMetadata)
 	#timeStampScore = timeStampScoring(testMetadata)
-	for destinationNum in range(len(destinations)):
-		sumOfpolylineSimilarityScore = 0
-		#sumOfCallTypeScore = 0
-		#sumOfDayTypeScore = 0
-		#sumOfTimeStampScore = 0
-		for trajectoryNum in destinations[destinationNum][1]:
-			sumOfpolylineSimilarityScore += polylineSimilarityScore[trajectoryNum]
-			#sumOfCallTypeScore += callTypeScore[trajectoryNum]
-			#sumOfDayTypeScore += dayTypescore[trajectoryNum]
-			#sumOfTimeStampScore += timeStampScore[trajectoryNum]
-		scoreList[destinationNum] = sumOfpolylineSimilarityScore#+sumOfCallTypeScore+sumOfDayTypeScore+sumOfTimeStampScore
+	for destinationNum in xrange(len(destinations)):
+			sumOfpolylineSimilarityScore = 0
+			#sumOfCallTypeScore = 0
+			#sumOfDayTypeScore = 0
+			#sumOfTimeStampScore = 0
+			for trajectoryNum in destinations[destinationNum][1]:		
+				sumOfpolylineSimilarityScore += polylineSimilarityScore[trajectoryNum]
+				#sumOfCallTypeScore += callTypeScore[trajectoryNum]
+				#sumOfDayTypeScore += dayTypescore[trajectoryNum]
+				#sumOfTimeStampScore += timeStampScore[trajectoryNum]
+			scoreList[destinationNum] = sumOfpolylineSimilarityScore
+			#scoreList[destinationNum] = sumOfpolylineSimilarityScore+sumOfCallTypeScore+sumOfDayTypeScore+sumOfTimeStampScore
 	return destinations[scoreList.index(max(scoreList))][0]
 
 def polylineSimilarityScoring(testPolylineData):
 	polylineSimilarityScore = [0]*len(polylines) #matchAmount is propotional to bayesian probability
-	for node in testPolylineData:
-		for polylineNum in xrange(len(polylines)):
-			if node in polylines[polylineNum]: polylineSimilarityScore[polylineNum] += 1.0/len(polylines[polylineNum])/len(testPolylineData)
-	for matchNum in xrange(len(polylineSimilarityScore)):
-		if not isSameDirection(testPolylineData,polylines[matchNum]): polylineSimilarityScore[matchNum] = 0
-	sumOfScore = sum(polylineSimilarityScore)
-	if sumOfScore == 0: sumOfScore = 0.0000001
-	for scoreNum in xrange(len(polylineSimilarityScore)): polylineSimilarityScore[scoreNum]/sumOfScore
+	for polylineNum in xrange(len(polylines)):
+		if np.dot((testPolylineData[-1]-testPolylineData[0]),(polylines[polylineNum][-1]-polylines[polylineNum][0]))<=0: polylineSimilarityScore[polylineNum] = 0 #train polyline must go the same way with test polyline
+		elif np.dot((testPolylineData[-1]-testPolylineData[0]),(polylines[polylineNum][0]-testPolylineData[0]))<=0: polylineSimilarityScore[polylineNum] = 0 #destination must be on the way of test polyline
+		else: polylineSimilarityScore[polylineNum] = len(list(node for node in testPolylineData if node in polylines[polylineNum]))/float(len(polylines[polylineNum]))
+	#sumOfScore = sum(polylineSimilarityScore)
 	return polylineSimilarityScore
+
+
 """
 def timeStampScoring(testMetadata):
 	timeStampScore = [0]*len(polylines)
@@ -139,15 +138,12 @@ def dayTypeScoring(testMetadata):
 	return dayTypeSimilarityScore
 """
 
-
 def buildAnswerFile():
-	answers = range(len(testPolylineData))
-	for t in xrange(len(testPolylineData)):
-		answers[t] = BayesMethod(testPolylineData[t],testMetadata[t])
-	File = open('./ans.csv','w')
+	File = open(output,'w')
 	File.write('TRIP_ID'+','+'LATITUDE'+','+'LONGITUDE'+'\n')
-	for ans in xrange(len(answers)): File.write(str(titles[ans]) + ',' + str(answers[ans][0]) + ',' + str(answers[ans][1]) + '\n')
+	for ans in xrange(len(testPolylineData)):
+		answer = BayesMethod(testPolylineData[ans],testMetadata[ans])
+		File.write(str(testMetadata[ans][0]) + ',' + str(answer[1]) + ',' + str(answer[0]) + '\n')
 	File.close
 
-init()
-buildAnswerFile()
+main(sys.argv[1:])
