@@ -27,7 +27,7 @@ class TaxiDataset:
     def __getitem__(self, key):
         index, item = key
 
-        if item in ('polyline', 9):
+        if item in ('polyline', 10):
             trip = self.trips[index]
             begin = trip[9]
             end = begin + trip[8]
