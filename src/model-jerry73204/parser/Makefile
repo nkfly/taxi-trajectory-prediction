@@ -1,6 +1,6 @@
 SOURCES=parser.c
 TARGET=parser
-CFLAGS=-g -Wall -std=gnu11 -fopenmp
+CFLAGS=-g -O3 -Wall -std=gnu11 -fopenmp -DNDEBUG
 LDFLAGS=
 INCLUDES=
 LIBS=-lm

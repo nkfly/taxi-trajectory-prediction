@@ -511,7 +511,7 @@ void dump_trips(char *path, int num_trips, int max_trip_id_length, struct trip *
             mem_ptr += sizeof(trip_ptr->polyline_size);
 
             *(int*) mem_ptr = polyline_index;
-            mem_ptr += sizeof(sizeof(int));
+            mem_ptr += sizeof(int);
 
             int polyline_chunk_size = sizeof(struct coordinate) * trip_ptr->polyline_size;
             memcpy(polyline_ptr, trip_ptr->polyline, polyline_chunk_size);
