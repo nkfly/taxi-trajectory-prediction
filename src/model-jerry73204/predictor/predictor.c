@@ -11,12 +11,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#ifdef USE_CUDA
-#include <cuda.h>
-#include <cuda_runtime_api.h>
-#endif
-
-#include "model-jerry73204.h"
+#include "predictor.h"
 
 #define MAX_NUM_METAS 63
 #define MAX_NUM_TRIPS 8388608
@@ -24,6 +19,11 @@
 #define COMPARED_POLYLINE_LENTH 16
 #define MAX_NUM_PREDICTIONS 320
 #define DOUBLE_INFINITY ((1.0 / 0.0))
+
+#define WEIGHT_VECTOR_SIZE 5000
+
+#define RADIUS 6371
+#define RAD_DEG_RATIO (3.14159265358979323846264338 / 180)
 
 #define SWAP(a, b)                                            \
     do                                                        \
@@ -43,7 +43,6 @@
     }                                                     \
     while (0);
 
-
 int max_num_workers;
 
 struct meta metas[MAX_NUM_METAS];
@@ -62,6 +61,28 @@ struct coordinate *test_positions;
 
 struct prediction predictions[MAX_NUM_PREDICTIONS];
 
+double weight_vector[WEIGHT_VECTOR_SIZE];
+
+double dist(struct coordinate *p1, struct coordinate *p2)
+{
+    double th1 = p1->longitude;
+    double ph1 = p1->latitude;
+
+    double th2 = p2->longitude;
+    double ph2 = p2->latitude;
+
+    double dx, dy, dz;
+    ph1 -= ph2;
+    ph1 *= RAD_DEG_RATIO;
+    th1 *= RAD_DEG_RATIO;
+    th2 *= RAD_DEG_RATIO;
+
+    dz = sin(th1) - sin(th2);
+    dx = cos(ph1) * cos(th1) - cos(th2);
+    dy = sin(ph1) * cos(th1);
+    return asin(sqrt(dx * dx + dy * dy + dz * dz) / 2) * 2 * RADIUS;
+}
+
 /* find distance b/w two coordinate */
 double distance_coordinate(struct coordinate *line_left, struct coordinate *line_right)
 {
@@ -78,7 +99,7 @@ double distance_polyline(struct coordinate *line_left, struct coordinate *line_r
 
     for (int i = 0; i < n; i++)
     {
-        norm += distance_coordinate(line_left, line_right);
+        norm += dist(line_left, line_right) * weight_vector[n - i - 1];
         line_left++;
         line_right++;
     }
@@ -135,7 +156,7 @@ void load_meta_data(char *path)
     int ret;
 
     /* open file */
-    ret = access(path, F_OK) && !access(path, R_OK);
+    ret = access(path, F_OK) || access(path, R_OK);
     assert(ret == 0);
 
     int fd_meta = open(path, O_RDONLY);
@@ -197,7 +218,7 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
     int ret;
 
     /* open file */
-    ret = access(path, F_OK) || !access(path, R_OK);
+    ret = access(path, F_OK) || access(path, R_OK);
     assert(ret == 0);
 
     int fd_csv = open(path, O_RDONLY);
@@ -257,7 +278,7 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
     {
         struct trip *trip_begin = &trips[i * num_trips_per_worker];
         struct trip *trip_ptr = trip_begin;
-        /* struct coordinate *position_begin = &positions[i * num_positions_per_worker]; */
+        struct coordinate *position_begin = &positions[i * num_positions_per_worker];
         struct coordinate *position_ptr = &positions[i * num_positions_per_worker];
         char *ptr = begin_ptrs[i];
         char *end = begin_ptrs[i + 1];
@@ -400,9 +421,6 @@ void load_csv_data(char *path, struct trip *trips, struct trip **trip_pointers, 
 
 void compute_prediction()
 {
-#ifdef USE_CUDA
-    /* TODO */
-#else
     /* find distances b/w trips */
     struct trip **train_trip_pointers_end = &train_trip_pointers[num_train_trips];
     struct trip **test_trip_pointers_end = &test_trip_pointers[num_test_trips];
@@ -467,7 +485,6 @@ void compute_prediction()
         predictions[test_trip_index].destination = nearest_trip->polyline[nearest_trip->polyline_size - 1];
     }
 }
-#endif
 
 void print_prediction()
 {
@@ -478,7 +495,12 @@ void print_prediction()
 
 int main(int argc, char **argv)
 {
-    assert(argc == 4);
+    if (argc != 4)
+    {
+        fprintf(stderr, "Usage: %s meta_data train_data test_data\n\n", argv[0]);
+        return 1;
+    }
+
     max_num_workers = omp_get_max_threads();
     assert(max_num_workers > 1);
 
@@ -494,6 +516,11 @@ int main(int argc, char **argv)
 
     test_positions = (struct coordinate*) malloc(MAX_NUM_POSITIONS * sizeof(struct coordinate));
     assert(test_positions != NULL);
+
+    /* init weight vector */
+#pragma omp parallel for
+    for (int i = 0; i < WEIGHT_VECTOR_SIZE; i++)
+        weight_vector[i] = exp((double) i * 0.02);
 
     /* parse dataset */
     load_meta_data(argv[1]);

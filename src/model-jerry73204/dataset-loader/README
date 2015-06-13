@@ -1,0 +1,3 @@
+1. download compact dataset on http://wtf.csie.org/taxi-dataset.tar.xz and extract it
+2. place _taxidataset.py_ under the same folder with your python code
+3. refer to example.py for detailed usage.

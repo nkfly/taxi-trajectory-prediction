@@ -1,5 +1,5 @@
-SOURCES=model-jerry73204.c
-TARGET=model-jerry73204
+SOURCES=predictor.c
+TARGET=predictor
 CFLAGS=-g -O3 -Wall -std=gnu11 -fopenmp -DNDEBUG
 LDFLAGS=
 INCLUDES=
