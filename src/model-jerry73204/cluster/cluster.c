@@ -139,6 +139,8 @@ void cluster(char *path)
 
     int *flags = (int*) calloc(num_trips, sizeof(int));
     assert(flags != NULL);
+    int *center_indices = (int*) calloc(num_trips, sizeof(int));
+    assert(center_indices != NULL);
 
     int num_chunks;
     int min_chunk_size = (num_trips - 1) / max_num_workers + 1;
@@ -180,6 +182,7 @@ void cluster(char *path)
         if (flags[center_index] != 0)
             continue;
 
+        center_indices[cluster_count] = center_index;
         char *center_ptr = mem_trips + struct_size * center_index;
         int center_polyline_size = *(int*) (center_ptr + max_trip_id_length + sizeof(int) * 7);
         int center_polyline_index = *(int*) (center_ptr + max_trip_id_length + sizeof(int) * 8);
@@ -221,6 +224,8 @@ void cluster(char *path)
     if (num_trips_left < 0)
         fprintf(stderr, "error: num_trips_left = %d\n", num_trips_left);
 
+    write(1, &cluster_count, sizeof(int));
+    write(1, center_indices, sizeof(int) * cluster_count);
     write(1, flags, sizeof(int) * num_trips);
 }
 
@@ -228,7 +233,7 @@ int main(int argc, char **argv)
 {
     if (argc != 2)
     {
-        fprintf(stderr, "Usage: %s meta_data train_data\n\n", argv[0]);
+        fprintf(stderr, "Usage: %s train_data\n\n", argv[0]);
         return 1;
     }
 
