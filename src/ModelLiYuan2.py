@@ -2,8 +2,7 @@ import os.path
 import json
 import numpy
 import math
-from sklearn import svm, datasets
-from sklearn import cross_validation
+from sklearn.ensemble import RandomForestClassifier
 import sys
 
 
@@ -45,26 +44,63 @@ def polylines_to_vector_representation(polylines, last_k_point):
 	return vector_representation
 
 
-def create_feature_vector(line, destination_to_label, dimension,train_keep_ratio):
+def create_feature_vector(line, destination_to_label, label_to_point,point_num,train_keep_ratio):
 	if 'True' in line: # missing data
 		return False, None, None
 
 	entries = line.strip().split('"')
 	polylines = json.loads(entries[-2])
 
+	if len(polylines) < 2: # dimension too low
+		return False, None, None
+
 	destination = coordinateTransf( polylines[-1], digits)
 	if destination not in destination_to_label:
 		destination_to_label[destination] = len(destination_to_label)
+		label_to_point[destination_to_label[destination]] = [round(polylines[-1][0],digits),round(polylines[-1][1],digits)]
 
-	len_to_keep = len(polylines)*train_keep_ratio
+	len_to_keep = int(len(polylines)*train_keep_ratio)
 
-	if len_to_keep
 
 	feature_vector = []
-	feature_vector.extend( polylines_to_vector_representation(polylines, last_k_point) )
-	# feature_vector = polylines
+
+	if len_to_keep < point_num:
+		for i in range(point_num - len_to_keep):
+			feature_vector.append(0.0)
+			feature_vector.append(0.0)
+	else:
+		len_to_keep = point_num
+	
+	for i in range(len(polylines) - len_to_keep, len(polylines)):
+			feature_vector.append(polylines[i][0])
+			feature_vector.append(polylines[i][1])
+
+
 
 	return True, feature_vector, destination_to_label[destination]
+
+
+def create_feature_vector_test(line, point_num):
+
+	entries = line.strip().split('"')
+	polylines = json.loads(entries[-2])
+
+	feature_vector = []
+
+	if len(polylines) < point_num:
+		for i in range(point_num - len(polylines)):
+			feature_vector.append(0.0)
+			feature_vector.append(0.0)
+	
+	smaller = len(polylines) if len(polylines) < point_num else point_num
+
+	for i in range(len(polylines) - smaller, len(polylines)):
+			feature_vector.append(polylines[i][0])
+			feature_vector.append(polylines[i][1])
+
+
+
+	return True, feature_vector
 
 
 
@@ -76,119 +112,70 @@ if __name__ == '__main__':
 		print 'please put the data folder in the same layer as src'
 		exit(-1)
 
-	# train_mean, train_std = polyline_statistics(train_file)
-	# test_mean, test_std = polyline_statistics(test_file)
-
-	# print train_mean, train_std
-	# print test_mean, test_std
-
-	# print str(test_mean/train_mean * 100 ) + '%'
-
-	maxLength = 0
-	length2count = {}
-	with open(train_file, 'r') as f:
-		f.readline()
-		for line in f:
-			entries = line.strip().split('"')
-			polylines = json.loads(entries[-2])
-
-			length = len(polylines)
-
-			if length > maxLength:
-				maxLength = length
-
-			if length not in length2count:
-				length2count[length] = 0
-
-			length2count[length] += 1
-
-
-	with open(test_file, 'r') as f:
-		f.readline()
-		for line in f:
-			entries = line.strip().split('"')
-			polylines = json.loads(entries[-2])
-
-			length = len(polylines)
-
-			if length > maxLength:
-				maxLength = length
-
-			if length not in length2count:
-				length2count[length] = 0
-
-			length2count[length] += 1
-
-	for length in sorted( length2count):
-		print length, length2count[length]
-
-
-
-
-
-
 
 	destination_to_label = {}
-	digits = 2 # 1:305, 2:2732, 3:24966, 4:249482, 5:1239996
+	label_to_point = {}
+	digits = 3 # 1:305, 2:2732, 3:24966, 4:249482, 5:1239996
 
 	X = []
 	y = []
 
-	dimension = 800
+	point_num = 400
 	train_keep_ratio = 0.8
 
 
 	with open(train_file, 'r') as f:
 		f.readline()
 		for line in f:
-			isOk, feature_vector, label = create_feature_vector(line, destination_to_label, dimension,train_keep_ratio)
+			isOk, feature_vector, label = create_feature_vector(line, destination_to_label, label_to_point,point_num,train_keep_ratio)
 			if not isOk:
 				continue
 
+			X.append(feature_vector)
+			y.append(label)
+
+
+	print 'training ...'
+	clf = RandomForestClassifier(max_depth=15,n_estimators=100, n_jobs=20)
+	# print len(X[1])
+	clf.fit(X, y)
+
+	X = []
+
+	print 'prediction ...'
+	with open(test_file, 'r') as f:
+		f.readline()
+		for line in f:
+			isOk, feature_vector = create_feature_vector_test(line, point_num)
+			if not isOk:
+				print 'dangerous'
+				continue
+
+			X.append(feature_vector)
+	# print len(X[1])
+	predictions = clf.predict(X)
+
+
+	index = 0
+	print len(label_to_point)
+	with open('answer3.csv', 'w') as w:
+		w.write('TRIP_ID,LATITUDE,LONGITUDE\n')
+		with open('cool_base.csv', 'r') as f:
+			f.readline()
+			for line in f:
+				entries = line.strip().split(',')
+				point =  label_to_point[predictions[index]]
+				# print predictions[index]
+
+				w.write(entries[0] + ',' + str(point[1]) + ',' + str(point[0]) + '\n')
+				index += 1
 
 
 
-	# # feature_vector_max = 0
-	# # feature_vector_min = sys.maxint
-	# # feature_vector_length_list = []
-
-	# with open(train_file, 'r') as f:
-	# 	header = [ column.strip('"') for column in f.readline().strip().split(',')]
-	# 	print header
-	# 	for line in f:
-	# 		isOk, feature_vector, label = create_feature_vector(line, destination_to_label, last_k_point)
-	# 		if not isOk:
-	# 			continue
-	# 		# feature_vector_len = len(feature_vector)
-
-	# 		# if feature_vector_len > feature_vector_max:
-	# 		# 	feature_vector_max = feature_vector_len
-	# 		# if feature_vector_len < feature_vector_min:
-	# 		# 	feature_vector_min = feature_vector_len
-
-	# 		# feature_vector_length_list.append(feature_vector_len)
-	# 		# print feature_vector
-	# 		X.append(feature_vector)
-	# 		y.append(label)
-			
 
 
-	# with open('train.svm', 'w') as w:
-	# 	for i in range(len(X)):
-	# 		w.write(str(y[i]) + ' ') 
-	# 		feature_vector = X[i]
-	# 		for j in range(1, len(feature_vector)):
-	# 			w.write(str(j) + ':' + str(feature_vector[j]) + ' ')
-	# 		w.write(str(len(feature_vector)) + ':' + str(feature_vector[-1]) + '\n')
 
-	# print len(X)
-	# X_train, X_test, y_train, y_test = cross_validation.train_test_split(X, y, test_size=0.2, random_state=0)
-	# C = 1.0  # SVM regularization parameter
-	# svc = svm.SVC(kernel='linear', C=C).fit(X_train, y_train)
-	# score = clf.score(X_test, y_test)
-	# print score
-	# print feature_vector_max, feature_vector_min, numpy.mean(feature_vector_length_list), numpy.std(feature_vector_length_list)
-	# print len(destination_to_label)
+
 
 
 
