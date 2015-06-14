@@ -175,7 +175,7 @@ void cluster(char *path)
 
     int cluster_count = 0;
     int center_index;
-    int num_trips_left = 0;
+    int num_trips_left = num_trips;
 
     for (center_index = 0; center_index < num_trips; center_index++)
     {
