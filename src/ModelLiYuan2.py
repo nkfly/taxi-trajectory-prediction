@@ -158,9 +158,9 @@ if __name__ == '__main__':
 
 	index = 0
 	print len(label_to_point)
-	with open('answer3.csv', 'w') as w:
+	with open('answer.csv', 'w') as w:
 		w.write('TRIP_ID,LATITUDE,LONGITUDE\n')
-		with open('cool_base.csv', 'r') as f:
+		with open('answer_sample.csv', 'r') as f:
 			f.readline()
 			for line in f:
 				entries = line.strip().split(',')
