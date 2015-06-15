@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg height='180' version='1.1' width='800' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'>
+  <defs>
+    <polyline id="poly" points="35,10 27,20 30,30 20,50 25,70" stroke-width="2" stroke="black" fill="none" />
+    <g id="arrow" stroke="black" stroke-width="3">
+      <line x1="0" y1="0" x2="100" y2="0" />
+      <line x1="100" y1="0" x2="90" y2="-10" />
+      <line x1="100" y1="0" x2="90" y2="10" />
+    </g>
+  </defs>
+
+  <rect x="50" y="5" rx="5" ry="5" width="100" height="150" stroke="red" stroke-width="3" fill="red" fill-opacity="0.2" />
+  <use x="45" y="5" xlink:href="#poly" />
+  <use x="65" y="10" xlink:href="#poly" />
+  <use x="95" y="60" xlink:href="#poly" />
+  <use x="80" y="48" xlink:href="#poly" />
+  <use x="48" y="57" xlink:href="#poly" />
+
+  <rect x="300" y="5" rx="5" ry="5" width="100" height="150" stroke="red" stroke-width="3" fill="red" fill-opacity="0.2" />
+  <use x="345" y="60" xlink:href="#poly" />
+  <use x="298" y="57" xlink:href="#poly" />
+
+  <use x="170" y="80" xlink:href="#arrow" />
+  <text x="170" y="60" fill="black">find top N similar</text>
+
+  <use x="450" y="80" xlink:href="#arrow" />
+  <text x="420" y="60" fill="black">choose one as destination</text>
+
+  <use x="600" y="50" xlink:href="#poly" />
+</svg>

@@ -1,0 +1,25 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+</head>
+<body>
+<h1 id="knn-based-model">KNN based model</h1>
+<h1 id="idea">Idea</h1>
+<p>The idea comes from the fact that any routes of a destination passes through similar paths near the destination. Say in other words, anyone going to the entrance of NTU must pass through either Roosevelt‎ Rd. or Xinsheng S. Rd. Hence, by computing the <em>similarity</em> of two taxi routes, we can pick <em>top N</em> training taxi routes which are the most similar to the testing route, and find the most promising destination among the training routes.<br />In details, we should define the <em>similarity</em> between two routes and find a way to tell the <em>most promising destination</em> among the top N similar routes.</p>
+<h1 id="implementation">Implementation</h1>
+<h2 id="define-the-similarity">define the similarity</h2>
+<p>For any two polylines, <img src="eq1.svg" alt="route 1" /> and <img src="eq2.svg" alt="route 2" /> where <img src="eq3.svg" alt="ai" /> and <img src="eq4.svg" alt="bi" /> are coordinates consisting of longitude and latitude, and <img src="eq11.svg" alt="n &lt;= m" />. We define the distance as<br /><img src="eq5.svg" alt="distance function" /> subject to <img src="eq6.svg" alt="subject to" /><br />where <img src="eq12.svg" alt="wi" /> are the weights</p>
+<p><img src="img1.svg" alt="distance" /></p>
+<p>Given the training set of polylines, <img src="eq8.svg" alt="training set" /> and a test polyline <img src="eq9.svg" alt="test polyline" />. We can pick top N similar polylines similar to <img src="eq9.svg" alt="test polyline" />, which is <img src="eq10.svg" alt="similar polylines" />.</p>
+<p>We can pick the most promising destination by</p>
+<ul class="incremental">
+<li>the destination of the most similar polyline</li>
+<li>majority voting<br /><img src="img2.svg" alt="KNN" /></li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg height='180' version='1.1' width='400' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'>
+  <rect x="55" y="0" width="190" height="60" stroke="black" stroke-width="2" fill="red" opacity="0.2" />
+  <rect x="5" y="90" width="350" height="65" stroke="black" stroke-width="2" fill="blue" opacity="0.2" />
+
+  <line x1="90" y1="30" x2="90" y2="120" stroke="gray" stroke-width="3" stroke-dasharray="10 5" />
+  <line x1="150" y1="30" x2="150" y2="120" stroke="gray" stroke-width="3" stroke-dasharray="10 5" />
+  <line x1="210" y1="30" x2="210" y2="120" stroke="gray" stroke-width="3" stroke-dasharray="10 5" />
+
+  <circle cx="90" cy="25" r="20" stroke="black" stroke-width="3" fill="white" />
+  <circle cx="150" cy="36" r="20" stroke="black" stroke-width="3" fill="white" />
+  <circle cx="210" cy="30" r="20" stroke="black" stroke-width="3" fill="white" />
+
+  <circle cx="30" cy="119" r="20" stroke="black" stroke-width="3" fill="white" />
+  <circle cx="90" cy="122" r="20" stroke="black" stroke-width="3" fill="white" />
+  <circle cx="150" cy="117" r="20" stroke="black" stroke-width="3" fill="white" />
+  <circle cx="210" cy="124" r="20" stroke="black" stroke-width="3" fill="white" />
+  <circle cx="270" cy="115" r="20" stroke="black" stroke-width="3" fill="white" />
+  <circle cx="330" cy="126" r="20" stroke="black" stroke-width="3" fill="white" />
+
+  <text x="85" y="30" fill="black">a1</text>
+  <text x="145" y="41" fill="black">a2</text>
+  <text x="205" y="35" fill="black">a3</text>
+
+  <text x="25" y="124" fill="black">b1</text>
+  <text x="85" y="127" fill="black">b2</text>
+  <text x="145" y="122" fill="black">b3</text>
+  <text x="205" y="129" fill="black">b4</text>
+  <text x="265" y="120" fill="black">b5</text>
+  <text x="325" y="131" fill="black">b6</text>
+
+  <text x="30" y="10" fill="black">test</text>
+  <text x="5" y="80" fill="black">train</text>
+</svg>
