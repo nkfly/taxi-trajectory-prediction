@@ -157,75 +157,92 @@ void cluster(char *path)
         }
     }
 
-#pragma omp parallel for
+    int *indices = (int *) malloc(sizeof(int) * num_trips);
+    assert(indices != NULL);
+
+    int num_trips_left = 0;
+    int index_count[num_chunks];
+    memset(index_count, 0, sizeof(int) * num_chunks);
+
+#pragma omp parallel for reduction(+: num_trips_left)
     for (int idx = 0; idx < num_chunks; idx++)
     {
         int begin = trip_indices[idx];
         int end = trip_indices[idx + 1];
         char *ptr = mem_begin + sizeof(int) * 2 + struct_size * begin;
+        int *index_ptr = &indices[begin];
 
         for (int i = begin; i < end; i++)
         {
             int polyline_size = *(int*) (ptr + max_trip_id_length + sizeof(int) * 7);
-            if (polyline_size == 0)
+            if (polyline_size != 0)
+            {
+                *index_ptr = i;
+                index_ptr++;
+            }
+            else
                 flags[i] = -1;
             ptr += struct_size;
         }
+        index_count[idx] = index_ptr - &indices[begin];
+        num_trips_left += index_count[idx];
     }
 
-    int cluster_count = 0;
-    int center_index;
-    int num_trips_left = num_trips;
+    int num_clusters = 0;
 
-    for (center_index = 0; center_index < num_trips; center_index++)
+    while (1)
     {
-        if (flags[center_index] != 0)
-            continue;
-
-        center_indices[cluster_count] = center_index;
-        char *center_ptr = mem_trips + struct_size * center_index;
-        int center_polyline_size = *(int*) (center_ptr + max_trip_id_length + sizeof(int) * 7);
-        int center_polyline_index = *(int*) (center_ptr + max_trip_id_length + sizeof(int) * 8);
-        struct coordinate *polyline_center = (struct coordinate*) (mem_coordinates + center_polyline_index * sizeof(struct coordinate));
-        int count = 0;
-
-#pragma omp parallel for reduction(+: count)
-        for (int idx = 0; idx < num_chunks; idx++)
+        /* find next center polyline */
+        int center_index;
+        int j;
+        for (j = 0; j < num_chunks; j++)
         {
-            int begin = trip_indices[idx];
-            int end = trip_indices[idx + 1];
-            char *ptr = mem_trips + struct_size * begin;
-
-            for (int i = begin; i < end; i++)
+            if (index_count[j] > 0)
             {
-                if (flags[i] == 0)
-                {
-                    int polyline_size = *(int*) (ptr + max_trip_id_length + sizeof(int) * 7);
-                    int polyline_index = *(int*) (ptr + max_trip_id_length + sizeof(int) * 8);
-                    struct coordinate *polyline = (struct coordinate*) (mem_coordinates + polyline_index * sizeof(struct coordinate));
-
-                    double distance = distance_trip(polyline_center, center_polyline_size, polyline, polyline_size);
-                    if (distance <= THRESHOLD)
-                    {
-                        count++;
-                        flags[i] = cluster_count;
-                    }
-                }
-                ptr += struct_size;
+                center_index = center_indices[num_clusters] = indices[trip_indices[j]];
+                break;
             }
         }
-        num_trips_left -= count;
-        cluster_count++;
 
-        if (num_trips_left == 0)
+        if (j == num_chunks)
             break;
+
+        int center_polyline_size = *(int*) (mem_trips + struct_size * center_index + max_trip_id_length + sizeof(int) * 7);
+        int center_polyline_index = *(int*) (mem_trips + struct_size * center_index + max_trip_id_length + sizeof(int) * 8);
+        struct coordinate *center_polyline = (struct coordinate*) (mem_coordinates + sizeof(struct coordinate) * center_polyline_index);
+
+#pragma omp parallel for
+        for (int idx = 0; idx < num_chunks; idx++)
+        {
+            int *ptr_begin = &indices[trip_indices[idx]];
+            int *ptr_end = ptr_begin + index_count[idx];
+
+            int *ptr_next_index = ptr_begin;
+
+            for (int *index_ptr = ptr_begin; index_ptr < ptr_end; index_ptr++)
+            {
+                int index = *index_ptr;
+                int polyline_size = *(int*) (mem_trips + struct_size * index + max_trip_id_length + sizeof(int) * 7);
+                int polyline_index = *(int*) (mem_trips + struct_size * index + max_trip_id_length + sizeof(int) * 8);
+                struct coordinate *polyline = (struct coordinate*) (mem_coordinates + sizeof(struct coordinate) * polyline_index);
+
+                double distance = distance_trip(center_polyline, center_polyline_size, polyline, polyline_size);
+                if (distance <= THRESHOLD)
+                    flags[index] = num_clusters;
+                else
+                {
+                    *ptr_next_index = index;
+                    ptr_next_index++;
+                }
+            }
+            index_count[idx] = ptr_next_index - ptr_begin;
+        }
+
+        num_clusters++;
     }
 
-    if (num_trips_left < 0)
-        fprintf(stderr, "error: num_trips_left = %d\n", num_trips_left);
-
-    write(1, &cluster_count, sizeof(int));
-    write(1, center_indices, sizeof(int) * cluster_count);
+    write(1, &num_clusters, sizeof(int));
+    write(1, center_indices, sizeof(int) * num_clusters);
     write(1, flags, sizeof(int) * num_trips);
 }
 
